@@ -34,6 +34,7 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
   mapping(address => uint256[]) tokenOwners; // Track staked tokens
 
   address rareBlocksContractAddress; // Rareblocks NFT contract address
+  uint256 rareBlocksCommission;
   address treasuryAddress; // Treasury
 
   uint256 totalOutstandingShares = 0; // Amount of outstanding shares of the treasury
@@ -47,7 +48,7 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
 
   event Rented(address indexed _address); // Renting event
   event Staked(address indexed from, uint256 indexed tokenId, address sender); // Staking a pass
-  event Unstaked(address indexed _from, uint256 indexed tokenId); // Unstaking a pass
+  event Unstaked(address indexed _from, uint256 indexed tokenId); // Unstaking a pass  
   event UpdateTreasury(address indexed newAddress); // Change treasure wallet address
   event SetRareblocksContractAddress(address indexed newAddress); // When a token has added to the rent list
 
@@ -58,6 +59,16 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
     deployDate = block.timestamp;
     rentalMultiplier = 2;
     _price = price;
+    rareBlocksCommission = 100; // Rareblocks take 10%
+  }
+
+  // Divide by percentage, using base point
+  function divByPercentage(uint256 amount, uint256 proportion)
+    internal
+    pure
+    returns (uint256)
+  {
+    return (amount * 10000) / (1000000 / proportion);
   }
 
   // Set RarBlocks contract address
@@ -201,9 +212,10 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
       sharesPerWallet[msg.sender]; // Reduce amount of shares outstanding
     sharesPerWallet[msg.sender] = 0; // @dev Remove shares for wallet
 
-    (bool success, ) = payable(msg.sender).call{ value: totalPayoutPrice }(""); // Pay commission to staker
-    emit Unstaked(msg.sender, _tokenId);
-    require(success, "Failed to send Ether");
+    (bool success, ) = payable(msg.sender).call{ value: divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission) }(""); // Pay commission to staker
+    (bool successRareBlocksCommission,) = payable(treasuryAddress).call{ value: divByPercentage(totalPayoutPrice,rareBlocksCommission) }(""); // Pay commission to staker
+    emit Unstaked(msg.sender, _tokenId);    
+    require(success && successRareBlocksCommission, "Failed to send Ether");
   }
 
   function getRentPrice() external view returns (uint256) {
