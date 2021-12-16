@@ -59,7 +59,7 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
     deployDate = block.timestamp;
     rentalMultiplier = 2;
     _price = price;
-    rareBlocksCommission = 100; // Rareblocks take 10%
+    rareBlocksCommission = 100; // Rareblocks take 10%. Uses base point, so 100 is 10%.
   }
 
   // Divide by percentage, using base point
