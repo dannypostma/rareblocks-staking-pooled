@@ -32,6 +32,7 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
   uint256 rentalMultiplier; // Rent multiplier to increase rent supply
 
   mapping(address => uint256[]) tokenOwners; // Track staked tokens
+  address[] ownersAddresses; // Track owners of staked tokens
 
   address rareBlocksContractAddress; // Rareblocks NFT contract address
   uint256 rareBlocksCommission;
@@ -48,7 +49,8 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
 
   event Rented(address indexed _address); // Renting event
   event Staked(address indexed from, uint256 indexed tokenId, address sender); // Staking a pass
-  event Unstaked(address indexed _from, uint256 indexed tokenId); // Unstaking a pass  
+  event Unstaked(address indexed _from, uint256 indexed tokenId); // Unstaking a pass
+  event Payout(uint256 indexed treasury); // Payout all stakers
   event UpdateTreasury(address indexed newAddress); // Change treasure wallet address
   event SetRareblocksContractAddress(address indexed newAddress); // When a token has added to the rent list
 
@@ -185,6 +187,7 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
 
     totalOutstandingShares++;
     sharesPerWallet[msg.sender]++;
+    ownersAddresses.push(msg.sender);
   }
 
   // Unstake token and send back to users wallet
@@ -212,10 +215,43 @@ contract RentingPooledByMarcel is IERC721Receiver, Ownable {
       sharesPerWallet[msg.sender]; // Reduce amount of shares outstanding
     sharesPerWallet[msg.sender] = 0; // @dev Remove shares for wallet
 
-    (bool success, ) = payable(msg.sender).call{ value: divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission) }(""); // Pay commission to staker
-    (bool successRareBlocksCommission,) = payable(treasuryAddress).call{ value: divByPercentage(totalPayoutPrice,rareBlocksCommission) }(""); // Pay commission to staker
-    emit Unstaked(msg.sender, _tokenId);    
+    (bool success, ) = payable(msg.sender).call{
+      value: divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission)
+    }(""); // Pay commission to staker
+    (bool successRareBlocksCommission, ) = payable(treasuryAddress).call{
+      value: divByPercentage(totalPayoutPrice, rareBlocksCommission)
+    }(""); // Pay commission to staker
+
+    emit Unstaked(msg.sender, _tokenId);
     require(success && successRareBlocksCommission, "Failed to send Ether");
+
+    treasury -= totalPayoutPrice; // Adjust treasury
+  }
+
+  function payoutStakers() external payable {
+    require(treasury > 0, "Treasury is empty");
+
+    for (uint256 i = 0; i < ownersAddresses.length; i++) {
+      uint256 shares = sharesPerWallet[ownersAddresses[i]];
+      if (shares > 0) {
+        uint256 valuePerShare = treasury / totalOutstandingShares; // New price per share
+        uint256 totalSharesOwned = sharesPerWallet[ownersAddresses[i]]; // Total amount of owned shares
+        uint256 totalPayoutPrice = valuePerShare * totalSharesOwned; // Price to pay for selling shares
+
+        (bool success, ) = payable(ownersAddresses[i]).call{
+          value: divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission)
+        }(""); // Pay commission to staker
+        require(success, "Failed to send Ether");
+      }
+    }
+
+    (bool successRareBlocksCommission, ) = payable(treasuryAddress).call{
+      value: divByPercentage(treasury, rareBlocksCommission)
+    }(""); // Pay commission to staker
+    require(successRareBlocksCommission, "Failed to send Ether");
+
+    emit Payout(treasury);
+    treasury = 0; // Empty treasury    
   }
 
   function getRentPrice() external view returns (uint256) {
