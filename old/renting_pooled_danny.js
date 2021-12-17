@@ -1,6 +1,6 @@
 const RentingPooled = artifacts.require("RentingPooled");
 const RareBlocks = artifacts.require("RareBlocks");
-const utils = require("./helpers/utils");
+const utils = require("../test/helpers/utils");
 
 /*
  * uncomment accounts to access the test accounts made available by the
