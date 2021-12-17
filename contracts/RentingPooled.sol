@@ -99,8 +99,7 @@ contract RentingPooled is IERC721Receiver, Ownable {
 
     require( block.timestamp > rentDateExpiry[msg.sender], "You still have an active rental");
 
-    /// @notice If Renter rents again the next month, we just need to override the map.
-    /// @notice Decided to record the rent date instead of expiry date since it's easy to get expiry date by adding 30 days.
+    /// @notice Record expiry date in a map. Multiply days to support multi-month rentals.    
     rentDateExpiry[msg.sender] = uint256(block.timestamp) + (30 days * (msg.value / _price));
 
     totalTimesRented += 1; // Increment total times rented
