@@ -324,17 +324,42 @@ contract("RareBlocks", function (accounts) {
       assert.equal(BigInt(result), 100000000000000000n)
     });
 
-    it("should count 1 outstanding share", async function () {
+    it("should count 2 outstanding share", async function () {
       const result = await rentingInstance.getTotalOutstandingShares();
       assert.equal(BigInt(result), 2)
     });
 
-    it("should count 0 share for Bob", async function () {
+    it("should count 1 share for Bob", async function () {
       const result = await rentingInstance.getSharesPerWallet(bob);
       assert.equal(BigInt(result), 1)
     });
 
     
+  });
+
+  describe('When paying out all stakers, it', () => {
+    
+    it("should show an treasury value of 0.1", async function () {
+      const result = await rentingInstance.getAllStakerAddresses();
+      console.log(result);
+    });
+
+    it("should show an treasury value of 0.1", async function () {
+      const result = await rentingInstance.getTotalValueInTreasury();
+      assert.equal(BigInt(result), 100000000000000000n)
+    });
+    it("should payout all stakers", async function () {
+      const preValue = await web3.eth.getBalance(treasury);
+      await rentingInstance.payoutStakers();
+      const postValue = await web3.eth.getBalance(treasury);
+
+      assert.equal(postValue - preValue > 990000000000000, true)
+    });
+
+    it("should show an empty treasury", async function () {
+      const result = await rentingInstance.getTotalValueInTreasury();
+      assert.equal(BigInt(result), 0)
+    });
   });
 
 

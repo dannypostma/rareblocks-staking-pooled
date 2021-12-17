@@ -136,6 +136,23 @@ contract RentingPooled is IERC721Receiver, Ownable {
     tokenOwners[msg.sender].pop();
   }
 
+  function removeFromOwnersAddresses(address _address) internal {
+    for (uint256 i = 0; i < ownersAddresses.length; i++) {
+      if (ownersAddresses[i] == _address) {
+        removeFromOwnersAddressesByIndex(i);
+      }
+    }
+  }
+
+  function removeFromOwnersAddressesByIndex(uint256 _index) internal {
+    require(_index < ownersAddresses.length, "index out of bound");
+
+    for (uint256 i = _index; i < ownersAddresses.length - 1; i++) {
+      ownersAddresses[i] = ownersAddresses[i + 1];
+    }
+    ownersAddresses.pop();
+  }
+
   function stakeAndPurchaseTreasuryStock(uint256 _tokenId) public payable {
     uint256 sharePrice;
     if(treasury > 0 && totalOutstandingShares > 0){ // No divide by 0 error.
@@ -146,13 +163,16 @@ contract RentingPooled is IERC721Receiver, Ownable {
     require( rareBlocks.ownerOf(_tokenId) == msg.sender, "You do not own this token." );
     require( rareBlocks.isApprovedForAll(msg.sender, address(this)) == true, "You did not approve this contract to transfer." );
 
-    rareBlocks.safeTransferFrom(msg.sender, address(this), _tokenId); // Transfer token to contract
 
     totalOutstandingShares++; // Increase outstanding shares
     sharesPerWallet[msg.sender]++; // Increase share wallet owner
     ownersAddresses.push(msg.sender); // Array of all active stakers
     tokenOwners[msg.sender].push(_tokenId); // Track tokenIds a wallet has staked
     treasury += msg.value;
+
+    rareBlocks.safeTransferFrom(msg.sender, address(this), _tokenId); // Transfer token to contract
+
+    emit Staked(address(this), _tokenId, msg.sender);
   }
 
   // Unstake token and send back to users wallet
@@ -171,11 +191,11 @@ contract RentingPooled is IERC721Receiver, Ownable {
     rareBlocks.safeTransferFrom(address(this), msg.sender, _tokenId); // Send back token to owner
     removeTokenIdFromTokenOwners(_tokenId); // Remove staked tokenId
 
-    uint256 totalSharesOwned = sharesPerWallet[msg.sender]; // Total amount of owned shares
+    // uint256 totalSharesOwned = sharesPerWallet[msg.sender]; // Total amount of owned shares
 
     if(treasury > 0){ // Only call if theres something to pay out
       uint256 valuePerShare = treasury / totalOutstandingShares; // New price per share
-      uint256 totalPayoutPrice = valuePerShare * totalSharesOwned; // Price to pay for selling shares
+      uint256 totalPayoutPrice = valuePerShare; // Price to pay for selling shares
 
 
       uint256 stakerPayoutValue = divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission); 
@@ -195,35 +215,39 @@ contract RentingPooled is IERC721Receiver, Ownable {
       treasury -= totalPayoutPrice; // Adjust treasury
     }
 
-    totalOutstandingShares = totalOutstandingShares - totalSharesOwned; // Reduce amount of shares outstanding
+    
 
-    sharesPerWallet[msg.sender] = 0; // @dev Remove shares for wallet
+    removeFromOwnersAddresses(msg.sender); // Remove staked tokenId
+    totalOutstandingShares -= 1; // Reduce amount of shares outstanding
+    sharesPerWallet[msg.sender] -= 1; // @dev Remove shares for wallet
     emit Unstaked(msg.sender, _tokenId);
   }
 
   function payoutStakers() external payable {
     require(treasury > 0, "Treasury is empty");
 
+    uint256 treasuryValueOnPayout = treasury;
+
     for (uint256 i = 0; i < ownersAddresses.length; i++) {
       uint256 shares = sharesPerWallet[ownersAddresses[i]];
       if (shares > 0) {
-        uint256 valuePerShare = treasury / totalOutstandingShares; // New price per share
+        uint256 valuePerShare = treasuryValueOnPayout / totalOutstandingShares; // New price per share
         uint256 totalSharesOwned = sharesPerWallet[ownersAddresses[i]]; // Total amount of owned shares
         uint256 totalPayoutPrice = valuePerShare * totalSharesOwned; // Price to pay for selling shares
 
         (bool success, ) = payable(ownersAddresses[i]).call{
           value: divByPercentage(totalPayoutPrice, 1000 - rareBlocksCommission)
         }(""); // Pay commission to staker
-        require(success, "Failed to send Ether");
+        require(success, "Failed to send Ether to address");
       }
     }
 
     (bool successRareBlocksCommission, ) = payable(treasuryAddress).call{
-      value: divByPercentage(treasury, rareBlocksCommission)
-    }(""); // Pay commission to staker
-    require(successRareBlocksCommission, "Failed to send Ether");
+      value: address(this).balance
+    }(""); // Send rest of money to treasury
+    require(successRareBlocksCommission, "Failed to send Ether to Treasury");
 
-    emit Payout(treasury);
+    emit Payout(treasuryValueOnPayout);
     treasury = 0; // Empty treasury    
   }
 
@@ -246,6 +270,10 @@ contract RentingPooled is IERC721Receiver, Ownable {
 
   function getTotalValueInTreasury() external view returns (uint256) {
     return treasury;
+  }
+
+  function getAllStakerAddresses() external view returns (address[] memory) {
+    return ownersAddresses;
   }
   
 }
