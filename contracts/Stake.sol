@@ -138,6 +138,7 @@ contract Stake is IERC721Receiver, Ownable {
   // Unstake token and send back to users wallet
   function unstakeAccessPass(uint256 _tokenId) external payable {
     require(tokenOwners[msg.sender].length > 0, "You haven't staked a token.");
+    
     uint256 treasury = address(this).balance;
     uint256 _totalOutstandingShares = totalOutstandingShares;
     
@@ -155,8 +156,8 @@ contract Stake is IERC721Receiver, Ownable {
     totalOutstandingShares -= 1; // Reduce amount of shares outstanding
     sharesPerWallet[msg.sender] -= 1; // @dev Remove shares for wallet
 
-    rareBlocks.safeTransferFrom(address(this), msg.sender, _tokenId); // Send back token to owner
     removeTokenIdFromTokenOwners(_tokenId); // Remove staked tokenId
+    rareBlocks.safeTransferFrom(address(this), msg.sender, _tokenId); // Send back token to owner
 
     if(treasury > 0){ // Only call if theres something to pay out
       uint256 valuePerShare = treasury / _totalOutstandingShares; // New price per share

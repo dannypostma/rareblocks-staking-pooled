@@ -68,6 +68,10 @@ contract Rent is Ownable {
     rentDateExpiry[msg.sender] = uint256(block.timestamp) + (30 days * (msg.value / _price));
     totalTimesRented += 1; // Increment total times rented
 
+    (bool success, ) = payable(stakeContractAddress).call{ // Direct payment to Stake contract
+      value: address(this).balance
+    }("");
+
     emit Rented(msg.sender);
   }
 

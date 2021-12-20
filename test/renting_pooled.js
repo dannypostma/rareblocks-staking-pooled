@@ -267,9 +267,14 @@ contract("RareBlocks", function (accounts) {
       await rentInstance.rent({from, value});
     });
 
-    it("should show a Rent Contract balance of 0.1E", async function () {
-      const result = await web3.eth.getBalance(rentInstance.address);
+    it("should show a Stake Contract balance of 0.1E", async function () {
+      const result = await web3.eth.getBalance(stakeInstance.address);
       assert.equal(BigInt(result), 100000000000000000)
+    });
+
+    it("should show an empty Rent Contract balance", async function () {
+      const result = await web3.eth.getBalance(rentInstance.address);
+      assert.equal(BigInt(result), 0)
     });
 
     it("should be NOT able to rent another pass for 1E", async function () {
@@ -278,8 +283,8 @@ contract("RareBlocks", function (accounts) {
       await utils.shouldThrow(rentInstance.rent({from, value}));
     });
 
-    it("should show a Rent Contract balance of 0.1E", async function () {
-      const result = await web3.eth.getBalance(rentInstance.address);
+    it("should show a Stake Contract balance of 0.1E", async function () {
+      const result = await web3.eth.getBalance(stakeInstance.address);
       assert.equal(result, 100000000000000000)
     });
 
@@ -289,31 +294,6 @@ contract("RareBlocks", function (accounts) {
     });
   });
 
-  describe('Before unstaking, with full Rent balance and empty Treasury balance, it', () => {
-    it("should have 1Eth in Rent contract wallet", async function () {
-      const result = await web3.eth.getBalance(rentInstance.address);
-      assert.equal(result, 100000000000000000)
-    });
-
-    it("should have 0Eth in Stake contract wallet", async function () {
-      const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result, 0)
-    });
-
-    it("should send all off Rent balance to Stake contract balance", async function () {
-      await rentInstance.transferFundsToStakerContract();
-    });
-
-    it("should have 0Eth in Rent contract wallet", async function () {
-      const result = await web3.eth.getBalance(rentInstance.address);
-      assert.equal(result, 0)
-    });
-
-    it("should have 1Eth in Stake contract wallet", async function () {
-      const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result, 100000000000000000)
-    });
-  });
 
   describe('When unstaking, with a full treasury, it', () => {
     it("should have 1Eth in contract wallet", async function () {
