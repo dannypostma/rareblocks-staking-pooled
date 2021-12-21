@@ -14,21 +14,26 @@ contract Rent is Ownable {
   uint256 totalTimesRented; // Track total amount pass has been rented
   uint256 rentalMultiplier; // Rent multiplier to increase rent supply
   uint256 _price; // Rental price
-  bool isRentable; // Contract open for renting
+  uint256 stakerCommission; // Commission for stakers
 
-  address stakeContractAddress;
+  bool isRentable; // Contract open for renting
+  
+  address stakeContractAddress; /// @dev Contract address of Rareblocks NFT stakers
+  address treasuryAddress; /// @dev Treasury address (or in the future other revenue splitting contract)
 
   mapping(address => uint256) rentDateExpiry; // Track renter
 
   event Rented(address indexed _address); // Renting event
-  event UpdateStakeContractAddress(address indexed newAddress); // When a token has added to the rent list
+  event UpdateAddress(address indexed newAddress); // When a token has added to the rent list
   event Payout(uint256 indexed _amount); // Payout all stakers
 
   constructor(uint256 price) {
     setStakeContractAddress(0x1bb191e56206e11b14117711C333CC18b9861262); // Staking Contract Address
+    setTreasuryAddress(0x96E7C3bAA9c1EF234A1F85562A6C444213a02E0A); // Staking Contract Address
 
     deployDate = block.timestamp;
     rentalMultiplier = 2;
+    stakerCommission = 500;
     _price = price;
     isRentable = false;
   }
@@ -36,12 +41,27 @@ contract Rent is Ownable {
   function setStakeContractAddress(address _address) public onlyOwner {
     stakeContractAddress = _address;
     stake = StakeInterface(_address);
-    emit UpdateStakeContractAddress(_address);
+    emit UpdateAddress(_address);
+  }
+
+  function setTreasuryAddress(address _address) public onlyOwner {
+    treasuryAddress = _address;
+    emit UpdateAddress(_address);
+  }
+
+  function divByPercentage(uint256 amount, uint256 proportion) internal pure returns (uint256){
+    // @dev double check this formula, was previously wrong
+    return (amount * 10000) / (10000000 / proportion);
   }
 
   // Change if customers can rent or not
   function setIsRentable(bool status) public onlyOwner {
     isRentable = status;
+  }
+
+  // Change if customers can rent or not
+  function setRentalMultiplier(uint256 _rentalMultiplier) public onlyOwner {
+    rentalMultiplier = _rentalMultiplier;
   }
 
   // Rent a pass
@@ -68,8 +88,9 @@ contract Rent is Ownable {
     rentDateExpiry[msg.sender] = uint256(block.timestamp) + (30 days * (msg.value / _price));
     totalTimesRented += 1; // Increment total times rented
 
+    uint256 stakerCommissionPayout = divByPercentage(msg.value, stakerCommission); 
     (bool success, ) = payable(stakeContractAddress).call{ // Direct payment to Stake contract
-      value: address(this).balance
+      value: stakerCommissionPayout
     }("");
 
     emit Rented(msg.sender);
@@ -78,6 +99,17 @@ contract Rent is Ownable {
   // Check if renter has active rent
   function isRentActive(address _address) external view returns (bool) {
     return block.timestamp < rentDateExpiry[_address]; // Check if current timestamp is less than expiry
+  }
+
+  function getRentEndDate(address _address) external view returns (uint256) {
+    return rentDateExpiry[_address]; // Returns end date of rental
+  }
+
+  function getNumberOfAvailableForRent() external view returns (uint256){
+    uint256 monthsSinceDeploy = (block.timestamp - deployDate) / 1000 / 60 / 60 / 24 / 30;
+    uint256 totalOutstandingShares = stake.getTotalOutstandingShares();
+    uint256 rentalMaxLimit = (monthsSinceDeploy * totalOutstandingShares * rentalMultiplier) + 10; // Minimum of 10
+    return rentalMaxLimit - totalTimesRented;
   }
 
   function getRentPrice() external view returns (uint256) {
@@ -89,11 +121,11 @@ contract Rent is Ownable {
   }
 
   /// @dev Send full balance to staking contract
-  function transferFundsToStakerContract() external payable{
+  function payoutCommissionToTreasury() external payable{
     uint256 contractBalance = address(this).balance;
     require(contractBalance > 0, "Contract balance is empty");
     
-    (bool success, ) = payable(stakeContractAddress).call{
+    (bool success, ) = payable(treasuryAddress).call{
       value: contractBalance
     }("");
     require(success, "Failed to send Ether to Stake contract");

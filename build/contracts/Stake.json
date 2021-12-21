@@ -34906,14 +34906,136 @@
   },
   "networks": {
     "1337": {
-      "events": {},
+      "events": {
+        "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "previousOwner",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "OwnershipTransferred",
+          "type": "event"
+        },
+        "0x22427047e1a674a9aff59700a2c8d00ea96e017ddf9236690bdedf1f21f28d9d": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "treasury",
+              "type": "uint256"
+            }
+          ],
+          "name": "Payout",
+          "type": "event"
+        },
+        "0x88a5966d370b9919b20f3e2c13ff65706f196a4e32cc2c12bf57088f88525874": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "Received",
+          "type": "event"
+        },
+        "0x2216c14e5e1e1182525d0aa5662651e4338d44a65953f8bbf6a72276355752e4": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newAddress",
+              "type": "address"
+            }
+          ],
+          "name": "SetRareblocksContractAddress",
+          "type": "event"
+        },
+        "0x9f9e4044c5742cca66ca090b21552bac14645e68bad7a92364a9d9ff18111a1c": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            }
+          ],
+          "name": "Staked",
+          "type": "event"
+        },
+        "0x0f5bb82176feb1b5e747e28471aa92156a04d9f3ab9f45f28e2d704232b93f75": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+            }
+          ],
+          "name": "Unstaked",
+          "type": "event"
+        },
+        "0x1f54d231bb9d500b1923e4a1cb25e600f366a8368873d9af7c1c623814df19fc": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newAddress",
+              "type": "address"
+            }
+          ],
+          "name": "UpdateTreasury",
+          "type": "event"
+        }
+      },
       "links": {},
-      "address": "0x6BF3EC57E8b3eC0b10F8CBF00665c588048aA43e",
-      "transactionHash": "0x77ef200a3102a8d147e69507a2419f7f8a17feb7e98d6345b5420172cf273172"
+      "address": "0x41e02e6148B1c2Fc6Fd0b0B8903223cb39F47380",
+      "transactionHash": "0x08498ca170cc7d46509e705a0a8696776c7efb3d9f1f088fa512c0e27b9d983b"
     }
   },
   "schemaVersion": "3.4.3",
-  "updatedAt": "2021-12-20T06:26:42.199Z",
+  "updatedAt": "2021-12-21T05:20:53.180Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

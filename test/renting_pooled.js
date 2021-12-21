@@ -12,6 +12,7 @@ const utils = require("./helpers/utils");
 contract("RareBlocks", function (accounts) {
   let [alice, bob, charlie, treasury, renter] = accounts;
   const divider = 1000000000000000000;
+  
   const gasPriceInGwei = 20;
   function gasToEther(value){
     return value * 20 * 0.000000001
@@ -267,14 +268,24 @@ contract("RareBlocks", function (accounts) {
       await rentInstance.rent({from, value});
     });
 
-    it("should show a Stake Contract balance of 0.1E", async function () {
-      const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(BigInt(result), 100000000000000000)
+    it("should return an end date for the rental", async function () {
+      const result = await rentInstance.getRentEndDate(renter);
+      assert.equal(BigInt(result) > 1642648785, true)
     });
 
-    it("should show an empty Rent Contract balance", async function () {
+    it("should show maximum available for rental", async function () {
+      const result = await rentInstance.getNumberOfAvailableForRent();
+      assert.equal(BigInt(result), 9)
+    });
+
+    it("should show a Stake Contract balance of 0.05E", async function () {
+      const result = await web3.eth.getBalance(stakeInstance.address);
+      assert.equal(BigInt(result), 50000000000000000)
+    });
+
+    it("should show a Rent Contract balance of 0.05E", async function () {
       const result = await web3.eth.getBalance(rentInstance.address);
-      assert.equal(BigInt(result), 0)
+      assert.equal(BigInt(result), 50000000000000000)
     });
 
     it("should be NOT able to rent another pass for 1E", async function () {
@@ -283,9 +294,9 @@ contract("RareBlocks", function (accounts) {
       await utils.shouldThrow(rentInstance.rent({from, value}));
     });
 
-    it("should show a Stake Contract balance of 0.1E", async function () {
+    it("should show a Stake Contract balance of 0.05E", async function () {
       const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result, 100000000000000000)
+      assert.equal(result, 50000000000000000)
     });
 
     it("should show ACTIVE rental for this wallet", async function () {
@@ -296,9 +307,9 @@ contract("RareBlocks", function (accounts) {
 
 
   describe('When unstaking, with a full treasury, it', () => {
-    it("should have 1Eth in contract wallet", async function () {
+    it("should have 0.05Eth in contract wallet", async function () {
       const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result, 100000000000000000)
+      assert.equal(result, 50000000000000000)
     });
 
     it("should let Bob unstake tokenId 17 and earn his interest", async function () {
@@ -306,12 +317,12 @@ contract("RareBlocks", function (accounts) {
       await stakeInstance.unstakeAccessPass(17, {from: bob});
       const postValue = await web3.eth.getBalance(bob);
       const walletIncreaseForBob = postValue - preValue;
-      assert.equal(walletIncreaseForBob/divider > 0.04, true);
+      assert.equal(walletIncreaseForBob/divider > 0.015, true);
     });
 
     it("should show an treasury value of 0.05", async function () {
       const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result > 49000000000000000, true)
+      assert.equal(result > 24800000000000000, true)
     });
 
     it("should count 1 outstanding share", async function () {
@@ -341,9 +352,9 @@ contract("RareBlocks", function (accounts) {
       await stakeInstance.stakeAndPurchaseTreasuryStock(17, {from: bob, value: sharePrice + 100000});
     });
 
-    it("should show an treasury value of 0.1", async function () {
+    it("should show an treasury value of 0.05", async function () {
       const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result > 98999099991099905, true)
+      assert.equal(result > 48999099991099905, true)
     });
 
     it("should count 2 outstanding share", async function () {
@@ -366,10 +377,11 @@ contract("RareBlocks", function (accounts) {
       assert.equal(result.length, 2)
     });
 
-    it("should show an treasury value of 0.1", async function () {
+    it("should show an treasury value of 0.05", async function () {
       const result = await web3.eth.getBalance(stakeInstance.address);
-      assert.equal(result > 98999099991099905, true)
+      assert.equal(result > 4999099991099905, true)
     });
+
     it("should payout all stakers", async function () {
       const preValue = await web3.eth.getBalance(treasury);
       await stakeInstance.payoutStakers();
@@ -384,6 +396,35 @@ contract("RareBlocks", function (accounts) {
     });
   });
 
+  describe('When paying out rent commission to treasury, it', () => {
+    it("should show an rental contract balance of 0.05", async function () {
+      const result = await web3.eth.getBalance(rentInstance.address);
+      assert.equal(result > 4999099991099905, true)
+    });
+
+    it("should payout rent value to treasury", async function () {
+      const preValue = await web3.eth.getBalance(treasury);
+      await rentInstance.payoutCommissionToTreasury();
+      const postValue = await web3.eth.getBalance(treasury);
+      assert.equal(postValue - preValue > 4999099991099905, true)
+    });
+
+    it("should show an empty Rent contract balance", async function () {
+      const result = await web3.eth.getBalance(rentInstance.address);
+      assert.equal(result == 0, true)
+    });
+  });
+
+  describe('When testing utilities, it', () => {
+    it("should show 9 passes available", async function () {
+      const result = await rentInstance.getNumberOfAvailableForRent()
+      assert.equal(BigInt(result), 9)
+    });
+    it("should be able to change the multiplier", async function () {
+      await rentInstance.setRentalMultiplier(4)
+    });
+  });
+  
 
  
 });
